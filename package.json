@@ -4,7 +4,8 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "watch": "nodemon index.js"
   },
   "keywords": [],
   "author": "",
@@ -12,5 +13,8 @@
   "dependencies": {
     "apollo-server": "^2.9.3",
     "graphql": "^14.5.5"
+  },
+  "devDependencies": {
+    "nodemon": "^1.19.2"
   }
 }
