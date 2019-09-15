@@ -137,11 +137,27 @@ const resolvers = {
       //just genre given
       if (args.genre) return books.filter(b => b.genres.includes(args.genre))
     },
-    allAuthors: () => authors
+    allAuthors: (root, argv) => authors
   },
   Author: {
     name: root => root.name,
     bookCount: root => books.filter(b => b.author === root.name).length
+  },
+  Mutation: {
+    addBook: (root, args) => {
+      const newBook = { ...args, id: uuid() }
+      books = books.concat(newBook)
+      //new author
+      if (!books.find(b => b.author === args.author)) {
+        const newAuthor = {
+          name: args.author,
+          id: uuid()
+        }
+        authors = authors.concat(newAuthor)
+      }
+
+      return newBook
+    }
   }
 }
 
