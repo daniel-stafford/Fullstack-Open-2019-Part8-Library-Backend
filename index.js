@@ -111,14 +111,15 @@ const typeDefs = gql`
 
 const resolvers = {
   Query: {
-    hello: () => {
-      return 'world'
-    },
+    hello: () => 'world',
     bookCount: () => books.length,
     authorCount: () => authors.length,
     allBooks: () => books,
-    allAuthors: () => authors,
-    bookCount: (root, args) => books.filter(b => b.author === root.name).length
+    allAuthors: () => authors
+  },
+  Author: {
+    name: root => root.name,
+    bookCount: root => books.filter(b => b.author === root.name).length
   }
 }
 
