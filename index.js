@@ -73,10 +73,29 @@ const resolvers = {
     }
   },
   Mutation: {
-    //to do
-    addBook: (root, args) => {},
+    addBook: async (root, args) => {
+      const { title, published, author, genres } = args
+      let authorID
+      const authorDuplicate = await Author.findOne({ name: author })
+      if (authorDuplicate) {
+        authorId = authorDuplicate.id
+      } else {
+        const newAuthor = new Author({ name: author })
+        await newAuthor.save()
+        authorId = newAuthor.id
+      }
+      const newBook = new Book({
+        title,
+        published,
+        //assigning the value id to author key preps for population below
+        author: authorId,
+        genres
+      })
+      await newBook.save()
+      //remember to populate
+      return Book.findById(newBook.id).populate('author')
+    },
 
-    //to do
     editAuthor: (root, args) => {}
   }
 }
