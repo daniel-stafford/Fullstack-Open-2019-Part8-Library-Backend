@@ -15,8 +15,7 @@ console.log('connecting to', url)
 mongoose
   .connect(url, {
     useNewUrlParser: true,
-    useUnifiedTopology: true,
-    ensureIndex: true
+    useUnifiedTopology: true
   })
   .then(() => {
     console.log('connected to MongoDB')
@@ -25,7 +24,6 @@ mongoose
     console.log('error connection to MongoDB:', error.message)
   })
 
-// changing Book's graphql schema from author: String! to author: author! causes graphql to get a status 400 error and to ask for subfields
 const typeDefs = gql`
   type Author {
     name: String!
@@ -76,30 +74,10 @@ const resolvers = {
   },
   Mutation: {
     //to do
-    addBook: (root, args) => {
-      // const newBook = { ...args, id: uuid() }
-      // books = books.concat(newBook)
-      // //new author
-      // if (!authors.find(b => b.author === args.author)) {
-      //   const newAuthor = {
-      //     name: args.author,
-      //     id: uuid()
-      //   }
-      //   authors = authors.concat(newAuthor)
-      //   console.log('new author added', authors)
-      // }
-      // return newBook
-    },
+    addBook: (root, args) => {},
 
     //to do
-    editAuthor: (root, args) => {
-      // let updateAuthor = authors.find(a => a.name === args.name)
-      // console.log(updateAuthor)
-      // if (!updateAuthor) return null
-      // updateAuthor = { ...updateAuthor, born: args.setBornTo }
-      // authors = authors.map(a => (a.name === args.name ? updateAuthor : a))
-      // return updateAuthor
-    }
+    editAuthor: (root, args) => {}
   }
 }
 
