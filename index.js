@@ -2,6 +2,8 @@ require('dotenv').config()
 const { ApolloServer, gql } = require('apollo-server')
 const uuid = require('uuid/v1')
 const mongoose = require('mongoose')
+const Book = require('./models/book')
+const Author = require('./models/author')
 
 mongoose.set('useFindAndModify', false)
 mongoose.set('useCreateIndex', true)
@@ -23,25 +25,8 @@ mongoose
     console.log('error connection to MongoDB:', error.message)
   })
 
-let authors = []
-
-/*
- * It would be more sensible to assosiate book and the author by saving
- * the author id instead of the name to the book.
- * For simplicity we however save the author name.
- */
-
-let books = []
-
+// changing Book's graphql schema from author: String! to author: author! causes graphql to get a status 400 error and to ask for subfields
 const typeDefs = gql`
-  type Book {
-    title: String!
-    published: Int!
-    author: String!
-    id: ID!
-    genres: [String!]
-  }
-
   type Author {
     name: String!
     id: ID!
@@ -49,11 +34,19 @@ const typeDefs = gql`
     bookCount: Int!
   }
 
+  type Book {
+    title: String!
+    published: Int!
+    author: Author!
+    id: ID!
+    genres: [String!]
+  }
+
   type Query {
     hello: String!
     bookCount: Int!
     authorCount: Int!
-    allBooks(author: String, genre: String): [Book!]
+    allBooks: [Book!]
     allAuthors: [Author!]!
   }
 
@@ -70,50 +63,42 @@ const typeDefs = gql`
 
 const resolvers = {
   Query: {
-    hello: () => 'world',
-    bookCount: () => books.length,
-    authorCount: () => authors.length,
-    allBooks: (root, args) => {
-      //no parameters
-      if (!args.author && !args.genre) return books
-      //both parameters given
-      if (args.author && args.genre)
-        return books
-          .filter(b => b.author === args.author)
-          .filter(b => b.genres.includes(args.genre))
-      //just author given
-      if (args.author) return books.filter(b => b.author === args.author)
-      //just genre given
-      if (args.genre) return books.filter(b => b.genres.includes(args.genre))
-    },
-    allAuthors: (root, argv) => authors
+    bookCount: () => Book.collection.countDocuments(),
+    authorCount: () => Author.collection.countDocuments(),
+    allBooks: () => Book.find({}).populate('author'),
+    allAuthors: () => Author.find({})
   },
   Author: {
-    name: root => root.name,
-    bookCount: root => books.filter(b => b.author === root.name).length
+    bookCount: async root => {
+      const books = await Book.find({ author: root.id })
+      return books.length
+    }
   },
   Mutation: {
+    //to do
     addBook: (root, args) => {
-      const newBook = { ...args, id: uuid() }
-      books = books.concat(newBook)
-      //new author
-      if (!authors.find(b => b.author === args.author)) {
-        const newAuthor = {
-          name: args.author,
-          id: uuid()
-        }
-        authors = authors.concat(newAuthor)
-        console.log('new author added', authors)
-      }
-      return newBook
+      // const newBook = { ...args, id: uuid() }
+      // books = books.concat(newBook)
+      // //new author
+      // if (!authors.find(b => b.author === args.author)) {
+      //   const newAuthor = {
+      //     name: args.author,
+      //     id: uuid()
+      //   }
+      //   authors = authors.concat(newAuthor)
+      //   console.log('new author added', authors)
+      // }
+      // return newBook
     },
+
+    //to do
     editAuthor: (root, args) => {
-      let updateAuthor = authors.find(a => a.name === args.name)
-      console.log(updateAuthor)
-      if (!updateAuthor) return null
-      updateAuthor = { ...updateAuthor, born: args.setBornTo }
-      authors = authors.map(a => (a.name === args.name ? updateAuthor : a))
-      return updateAuthor
+      // let updateAuthor = authors.find(a => a.name === args.name)
+      // console.log(updateAuthor)
+      // if (!updateAuthor) return null
+      // updateAuthor = { ...updateAuthor, born: args.setBornTo }
+      // authors = authors.map(a => (a.name === args.name ? updateAuthor : a))
+      // return updateAuthor
     }
   }
 }
