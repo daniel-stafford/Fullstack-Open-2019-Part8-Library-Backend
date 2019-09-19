@@ -63,7 +63,13 @@ const resolvers = {
   Query: {
     bookCount: () => Book.collection.countDocuments(),
     authorCount: () => Author.collection.countDocuments(),
-    allBooks: () => Book.find({}).populate('author'),
+    allBooks: (root, args) => {
+      //genre parameter not used in front end yet...
+      if (!args.genre) {
+        return Book.find({}).populate('author')
+      }
+      return Book.find({ genres: { $in: args.genre } }).populate('author')
+    },
     allAuthors: () => Author.find({})
   },
   Author: {
@@ -95,8 +101,17 @@ const resolvers = {
       //remember to populate
       return Book.findById(newBook.id).populate('author')
     },
-
-    editAuthor: (root, args) => {}
+    editAuthor: async (root, args) => {
+      const { name, setBornTo } = args
+      console.log('name', name)
+      console.log('setbornto', setBornTo)
+      const filter = { name }
+      const update = { born: setBornTo }
+      const updatedAuthor = await Author.findOneAndUpdate(filter, update, {
+        new: true
+      })
+      return updatedAuthor
+    }
   }
 }
 
