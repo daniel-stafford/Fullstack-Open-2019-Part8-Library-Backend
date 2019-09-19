@@ -81,7 +81,9 @@ const resolvers = {
   Mutation: {
     addBook: async (root, args) => {
       const { title, published, author, genres } = args
-      let authorID
+      if (!title || !author || !published || !genres)
+        throw new UserInputError(error.message, { invalidArgs: args })
+      let authorId
       const authorDuplicate = await Author.findOne({ name: author })
       if (authorDuplicate) {
         authorId = authorDuplicate.id
@@ -97,14 +99,20 @@ const resolvers = {
         author: authorId,
         genres
       })
-      await newBook.save()
+      try {
+        await newBook.save()
+      } catch (error) {
+        throw new UserInputError(error.message, { invalidArgs: args })
+      }
       //remember to populate
       return Book.findById(newBook.id).populate('author')
     },
     editAuthor: async (root, args) => {
       const { name, setBornTo } = args
-      console.log('name', name)
-      console.log('setbornto', setBornTo)
+      if ((setBornTo = '')) {
+        console.log('error running')
+        throw new UserInputError(error.message, { invalidArgs: args })
+      }
       const filter = { name }
       const update = { born: setBornTo }
       const updatedAuthor = await Author.findOneAndUpdate(filter, update, {
