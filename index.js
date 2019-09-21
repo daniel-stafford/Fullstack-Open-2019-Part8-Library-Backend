@@ -113,8 +113,6 @@ const resolvers = {
       if (!currentUser) {
         throw new AuthenticationError('You must be logged in to add a book')
       }
-      if (!title || !author || !published || !genres)
-        throw new UserInputError(error.message, { invalidArgs: args })
       let authorId
       const authorDuplicate = await Author.findOne({ name: author })
       if (authorDuplicate) {
@@ -138,8 +136,11 @@ const resolvers = {
       }
       //remember to populate
       const savedBook = Book.findById(newBook.id).populate('author')
-      currentUser.books = currentUser.books.concat(savedBook)
+      console.log('am i running????????')
       pubsub.publish('BOOK_ADDED', { bookAdded: savedBook })
+      console.log('am i running????????')
+
+      console.log('saved book', savedBook)
       return savedBook
     },
     editAuthor: async (root, args, { currentUser }) => {
