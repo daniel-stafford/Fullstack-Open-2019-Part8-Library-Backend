@@ -104,7 +104,7 @@ const resolvers = {
     addBook: async (root, args, { currentUser }) => {
       const { title, published, author, genres } = args
       if (!currentUser) {
-        throw new AuthenticationError('user not authenticated')
+        throw new AuthenticationError('You must be logged in to add a book')
       }
       if (!title || !author || !published || !genres)
         throw new UserInputError(error.message, { invalidArgs: args })
@@ -137,13 +137,15 @@ const resolvers = {
     editAuthor: async (root, args, { currentUser }) => {
       const { name, setBornTo } = args
       if (!currentUser) {
-        throw new AuthenticationError('not authenticated', {
-          invalidArgs: args
-        })
+        throw new AuthenticationError(
+          'You must be logged in to edit an author',
+          {
+            invalidArgs: args
+          }
+        )
       }
-      if ((setBornTo = '')) {
-        console.log('error running')
-        throw new UserInputError(error.message, { invalidArgs: args })
+      if (setBornTo === '') {
+        throw new UserInputError('You let a field empty', { invalidArgs: args })
       }
       const filter = { name }
       const update = { born: setBornTo }
@@ -161,10 +163,13 @@ const resolvers = {
       })
     },
     login: async (root, args) => {
+      //added "username: user" to MongoDB
       const user = await User.findOne({ username: args.username })
+      console.log('login args', args.password)
+      console.log('login user', user)
 
       if (!user || args.password !== 'password') {
-        throw new UserInputError('wrong credentials')
+        throw new UserInputError('Sorry. Wrong username or password')
       }
 
       const userForToken = {
@@ -183,7 +188,7 @@ const server = new ApolloServer({
   context: async ({ req }) => {
     const auth = req ? req.headers.authorization : null
     if (auth && auth.toLowerCase().startsWith('bearer ')) {
-      const decodedToken = jwt.verify(auth.substring(7), JWT_SECRET)
+      const decodedToken = jwt.verify(auth.substring(7), process.env.JWT_SECRET)
       const currentUser = await User.findById(decodedToken.id).populate('books')
       return { currentUser }
     }
