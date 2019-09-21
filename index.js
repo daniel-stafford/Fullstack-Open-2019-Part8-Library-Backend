@@ -1,10 +1,15 @@
 require('dotenv').config()
-const { ApolloServer, gql } = require('apollo-server')
-const uuid = require('uuid/v1')
+
 const mongoose = require('mongoose')
 const Book = require('./models/book')
 const Author = require('./models/author')
 const User = require('./models/user')
+const {
+  ApolloServer,
+  AuthenticationError,
+  gql,
+  UserInputError
+} = require('apollo-server')
 const jwt = require('jsonwebtoken')
 
 mongoose.set('useFindAndModify', false)
@@ -96,9 +101,8 @@ const resolvers = {
     }
   },
   Mutation: {
-    addBook: async (root, args) => {
+    addBook: async (root, args, { currentUser }) => {
       const { title, published, author, genres } = args
-      const currentUser = context.currentUser
       if (!currentUser) {
         throw new AuthenticationError('user not authenticated')
       }
@@ -130,11 +134,12 @@ const resolvers = {
       currentUser.books = currentUser.books.concat(savedBook)
       return savedBook
     },
-    editAuthor: async (root, args) => {
+    editAuthor: async (root, args, { currentUser }) => {
       const { name, setBornTo } = args
-      const currentUser = context.currentUser
       if (!currentUser) {
-        throw new AuthenticationError('not authenticated')
+        throw new AuthenticationError('not authenticated', {
+          invalidArgs: args
+        })
       }
       if ((setBornTo = '')) {
         console.log('error running')
@@ -179,7 +184,7 @@ const server = new ApolloServer({
     const auth = req ? req.headers.authorization : null
     if (auth && auth.toLowerCase().startsWith('bearer ')) {
       const decodedToken = jwt.verify(auth.substring(7), JWT_SECRET)
-      const currentUser = await User.findById(decodedToken.id)
+      const currentUser = await User.findById(decodedToken.id).populate('books')
       return { currentUser }
     }
   }
