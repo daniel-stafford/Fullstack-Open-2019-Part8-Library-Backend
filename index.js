@@ -1,5 +1,4 @@
 require('dotenv').config()
-
 const mongoose = require('mongoose')
 const Book = require('./models/book')
 const Author = require('./models/author')
@@ -11,6 +10,9 @@ const {
   UserInputError
 } = require('apollo-server')
 const jwt = require('jsonwebtoken')
+
+const { PubSub } = require('apollo-server')
+const pubsub = new PubSub()
 
 mongoose.set('useFindAndModify', false)
 mongoose.set('useCreateIndex', true)
@@ -36,6 +38,7 @@ const typeDefs = gql`
     username: String!
     books: [Book!]!
     id: ID!
+    genre: String!
   }
 
   type Token {
@@ -76,6 +79,9 @@ const typeDefs = gql`
     createUser(username: String!): User
     login(username: String!, password: String!): Token
   }
+  type Subscription {
+    bookAdded: Book!
+  }
 `
 
 const resolvers = {
@@ -100,6 +106,7 @@ const resolvers = {
       return books.length
     }
   },
+
   Mutation: {
     addBook: async (root, args, { currentUser }) => {
       const { title, published, author, genres } = args
@@ -132,6 +139,7 @@ const resolvers = {
       //remember to populate
       const savedBook = Book.findById(newBook.id).populate('author')
       currentUser.books = currentUser.books.concat(savedBook)
+      pubsub.publish('BOOK_ADDED', { bookAdded: savedBook })
       return savedBook
     },
     editAuthor: async (root, args, { currentUser }) => {
@@ -145,7 +153,9 @@ const resolvers = {
         )
       }
       if (setBornTo === '') {
-        throw new UserInputError('You let a field empty', { invalidArgs: args })
+        throw new UserInputError('You left a field empty', {
+          invalidArgs: args
+        })
       }
       const filter = { name }
       const update = { born: setBornTo }
@@ -155,7 +165,7 @@ const resolvers = {
       return updatedAuthor
     },
     createUser: (root, args) => {
-      const user = new User({ username: args.username })
+      const user = new User({ username: args.username, genre: args.genre })
       return user.save().catch(error => {
         throw new UserInputError(error.message, {
           invalidArgs: args
@@ -165,9 +175,6 @@ const resolvers = {
     login: async (root, args) => {
       //added "username: user" to MongoDB
       const user = await User.findOne({ username: args.username })
-      console.log('login args', args.password)
-      console.log('login user', user)
-
       if (!user || args.password !== 'password') {
         throw new UserInputError('Sorry. Wrong username or password')
       }
@@ -178,6 +185,11 @@ const resolvers = {
       }
 
       return { value: jwt.sign(userForToken, process.env.JWT_SECRET) }
+    }
+  },
+  Subscription: {
+    bookAdded: {
+      subscribe: () => pubsub.asyncIterator(['BOOK_ADDED'])
     }
   }
 }
@@ -195,6 +207,7 @@ const server = new ApolloServer({
   }
 })
 
-server.listen().then(({ url }) => {
+server.listen().then(({ url, subscriptionsUrl }) => {
   console.log(`Server ready at ${url}`)
+  console.log(`Subscriptions ready at ${subscriptionsUrl}`)
 })
